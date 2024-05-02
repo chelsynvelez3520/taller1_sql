@@ -1,0 +1,170 @@
+       TALLER 1. CODIGOS SQL
+
+ SELECT * from matriculas;
+
+ SELECT * from estudiantes;
+
+--------------------------------------------------------------------------------------------------------------------
+
+----1. Se pide el nombre de un estudiante por pantalla; decir cuántos estudiantes tienen el
+----mismo nombre, en caso de que no existan avisar.
+
+CREATE OR REPLACE PROCEDURE
+nombre_estudiante(var_nombre estudiantes.nombre%type)
+
+as
+   var_total number;
+begin
+  
+   select count(*) into var_total from estudiantes  where nombre=var_nombre;
+
+   DBMS_output.put_line(var_total);
+   
+end;
+
+delete from estudiantes;
+
+set SERVEROUTPUT on;
+
+ begin 
+ nombre_estudiante('&inserte_nombre');
+ 
+ end;
+ 
+select * from estudiantes;
+
+-----------------------------------------------------------------------------------------------------------------------------
+---- 2. - Hay una tabla llamada especialidades, que contiene 3 campos:
+---- Crear un procedimiento que permita matricular a un estudiante en un curso.
+
+CREATE OR REPLACE PROCEDURE actualizar_especialidades AS
+BEGIN
+    
+    DELETE FROM especialidades;
+
+
+    INSERT INTO especialidades (especialidad, total_creditos, total_estudiantes)
+    SELECT
+        e.especialidad,
+        SUM(c.creditos) AS total_creditos,
+        COUNT(*) AS total_estudiantes
+    FROM
+        estudiantes s
+    INNER JOIN
+        cursos c ON s.id_curso = c.id_curso
+    INNER JOIN
+        especialidades e ON c.especialidad = e.especialidad
+    GROUP BY
+        e.especialidad;
+END;
+
+  select 
+   especialidad,
+   sum(creditos) as total_creditos;
+    count(*) as total_estudiantes from estudiantes
+
+    group by especialidad;
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------
+---- 3.- Crear un procedimiento que permita matricular a un estudiante en un curso.
+
+  CREATE OR REPLACE PROCEDURE
+    matricular_estudiante(nombre.estudiante & type, departamento.estudiante & type,curso.estudiante & type, grado.estudiante % type)
+
+  as 
+  var_matricular_estudiante number; var_id & type from estudiante;
+  var_id:= 4;
+  BEGIN
+    SELECT COUNT(*)+1 INTO var_id FROM estudiantes;
+    insert into matricular_estudiantes values(nombre_estudiante, departamento, curso, grado);
+END;
+
+    -----------------------------------------------------------------------------------------------------------------
+
+---- 4. Mostrar por pantalla al estudiante con el ID mayor y al estudiante con el ID menor.
+
+  --   Mostrar por pantalla al estudiante con el ID mayor 
+   SELECT *
+    FROM estudiantes
+    WHERE id = (SELECT MAX(id) FROM estudiantes);
+
+  --Mostrar por pantalla al estudiante con el ID menor
+  SELECT *
+     FROM estudiantes
+     WHERE id = (SELECT MIN(id) FROM estudiantes);
+     
+     ------------------------------------------------------------------------------------------------------------------
+
+  -----5. Crear un trigger que garantice que un estudiante no va tener menos de 6 créditos ni
+  --- más de 15
+  
+CREATE OR REPLACE TRIGGER  creditos_estudiante
+BEFORE INSERT OR UPDATE ON estudiantes FOR EACH ROW
+BEGIN
+IF :NEW.creditos <6 AND :NEW.creditos >=15 THEN
+
+RAISE_APPLICATION_ERROR(-20001,'El numero de creditos no esta en el rango permitido');
+END IF;
+END;
+
+  --------------------------------------------------------------------------------------------------
+---- 6. Crear un procedimiento que tome a todos los estudiantes de deportes y les aumente
+----2 créditos, en caso de no existir ninguno no hacer nada.
+
+ CREATE OR REPLACE PROCEDURE aumentar_creditos_deportes IS
+BEGIN
+    UPDATE Estudiantes
+    SET creditos = creditos + 2
+    WHERE especialidad = 'Deportes';
+    
+    IF SQL%ROWCOUNT = 0 THEN
+        DBMS_OUTPUT.PUT_LINE('No se encontraron estudiantes de deportes.');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('Se aumentaron los créditos de los estudiantes de deportes.');
+    END IF;
+END aumentar_creditos_deportes;
+
+   -------------------------------------------------------------------------------------------------------
+
+----7. crear una función que retorne el futuro correo electrónico del estudiante, el correo
+----debe de ser:
+create or replace function correito(var_id estudiantes.id%type)
+return varchar2
+IS
+    var_nombre estudiantes.nombre%type;
+    var_apellido estudiantes.apellido%type;
+    ahno number;
+    correo varchar2(100);
+BEGIN
+    SELECT nombre, apellido INTO var_nombre, var_apellido FROM estudiantes where id=var_id;
+    correo := SUBSTR(var_nombre, 1, 2);
+    correo := correo || '.' || SUBSTR(var_apellido, 1, 2) || '-';
+    SELECT EXTRACT(YEAR FROM SYSDATE) INTO ahno FROM DUAL;
+    correo := correo || ahno || var_id || '@colegio.com';
+    
+    return correo;
+END;
+
+
+select correito(id) from estudiantes;
+
+--------------------------------------------------------------------------------------------------------------------------------
+  ----8.Determinar el nivel poblacional de las matrículas de cursos, ósea: “contar cuantas
+  ----matrículas tiene cada curso” clasificar en:
+  
+ select
+    departamento,
+    ncurso,
+    COUNT(*) AS num_matriculas,
+    CASE
+        WHEN COUNT(*) <= 10 THEN 'Baja'
+        WHEN COUNT(*) <= 20 THEN 'Media'
+        ELSE 'Alta'
+    END AS nivel_poblacional
+FROM
+    matriculas
+GROUP BY
+    departamento,
+    ncurso;
